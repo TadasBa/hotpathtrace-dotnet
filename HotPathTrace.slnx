@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HotPathTrace.Cli/HotPathTrace.Cli.csproj" />
+    <Project Path="src/HotPathTrace.Core/HotPathTrace.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HotPathTrace.Tests/HotPathTrace.Tests.csproj" />
+  </Folder>
+</Solution>
