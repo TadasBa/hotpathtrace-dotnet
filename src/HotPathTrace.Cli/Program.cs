@@ -16,7 +16,9 @@ internal static class Program
             return args[0] switch
             {
                 "generate" => RunGenerate(args[1..]),
+                "generate-binary" => RunGenerateBinary(args[1..]),
                 "replay" => RunReplay(args[1..]),
+                "replay-binary" => RunReplayBinary(args[1..]),
                 _ => Fail($"Unknown command '{args[0]}'.", includeUsage: true)
             };
         }
@@ -66,6 +68,43 @@ internal static class Program
         var summary = SessionSummaryCalculator.Calculate(replayedEvents);
 
         Console.WriteLine($"Replayed and validated {replayedEvents.Count} events from '{filePath}'.");
+        PrintSummary(summary);
+
+        return 0;
+    }
+
+    private static int RunGenerateBinary(string[] args)
+    {
+        var options = ParseOptions(args);
+        var events = ParsePositiveIntOption(options, "--events");
+        var outputPath = ParseRequiredOption(options, "--output");
+        var seed = ParseOptionalIntOption(options, "--seed");
+
+        EnsureNoUnexpectedOptions(options, "--events", "--output", "--seed");
+        EnsureOutputDirectoryExists(outputPath);
+
+        var generatedEvents = TradingEventGenerator.Generate(events, seed);
+        BinaryTradingEventWriter.Write(outputPath, generatedEvents);
+
+        var summary = SessionSummaryCalculator.Calculate(generatedEvents);
+
+        Console.WriteLine($"Generated binary file '{outputPath}' with {generatedEvents.Count} events.");
+        PrintSummary(summary);
+
+        return 0;
+    }
+
+    private static int RunReplayBinary(string[] args)
+    {
+        var options = ParseOptions(args);
+        var filePath = ParseRequiredOption(options, "--file");
+
+        EnsureNoUnexpectedOptions(options, "--file");
+
+        var replayedEvents = BinaryTradingEventReader.Read(filePath);
+        var summary = SessionSummaryCalculator.Calculate(replayedEvents);
+
+        Console.WriteLine($"Replayed and validated binary file '{filePath}' with {replayedEvents.Count} events.");
         PrintSummary(summary);
 
         return 0;
@@ -178,7 +217,9 @@ internal static class Program
         {
             Console.Error.WriteLine("Usage:");
             Console.Error.WriteLine("  generate --events <positive integer> --output <file path> [--seed <integer>]");
+            Console.Error.WriteLine("  generate-binary --events <positive integer> --output <file path> [--seed <integer>]");
             Console.Error.WriteLine("  replay --file <file path>");
+            Console.Error.WriteLine("  replay-binary --file <file path>");
         }
 
         return 1;

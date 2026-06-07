@@ -4,9 +4,11 @@ A C# .NET performance-learning project exploring low-allocation event logging an
 
 ## Current status
 
-Phase 1 is implemented.
+Phases 1 and 2 are implemented.
 
-This phase is the readable baseline logger. It is intentionally simple and correct first, not the optimised logger.
+Phase 1 is the readable baseline logger. It is intentionally simple and correct first, not the optimised logger.
+
+Phase 2 adds a compact binary logger and binary replay validation while keeping the NDJSON baseline in place.
 
 The baseline flow is:
 
@@ -18,10 +20,17 @@ The baseline flow is:
 
 NDJSON is useful here because it is easy to inspect with a text editor and easy to replay line by line.
 
+The binary format is more compact on disk:
+
+1. A 24-byte header stores the `HPTL` magic bytes, format version, record size, event count, and expected checksum.
+2. Each event record is exactly 37 bytes in this order: sequence, timestamp, type byte, price, quantity, order id.
+
+The binary format has not yet been benchmarked. No speed or allocation claim is made at this stage.
+
 ## Planned phases
 
 1. Correct readable baseline logger. Implemented.
-2. Compact binary logger.
+2. Compact binary logger. Implemented.
 3. Benchmark comparison.
 4. Bounded background logging pipeline.
 5. Optional ring-buffer experiment.
@@ -43,4 +52,16 @@ Replay a session:
 
 ```powershell
 dotnet run --project src/HotPathTrace.Cli -- replay --file artifacts/session.ndjson
+```
+
+Generate a binary session:
+
+```powershell
+dotnet run --project src/HotPathTrace.Cli -- generate-binary --events 10000 --output artifacts/session.bin --seed 42
+```
+
+Replay a binary session:
+
+```powershell
+dotnet run --project src/HotPathTrace.Cli -- replay-binary --file artifacts/session.bin
 ```
