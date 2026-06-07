@@ -1,71 +1,73 @@
 # HotPathTrace.NET
 
-A C# .NET performance-learning project exploring low-allocation event logging and deterministic replay for trading-style events.
+A C#/.NET experiment for recording and replaying deterministic trading-style events.
 
-## Current status
+The project compares two log formats:
 
-Phases 1, 2, and 3 are implemented.
+* **NDJSON** — readable, easy to inspect, useful as a correctness baseline.
+* **Binary** — compact fixed-layout format with replay validation and checksum checking.
 
-Phase 1 is the readable baseline logger. It is intentionally simple and correct first, not the optimised logger.
+The goal is to understand how log format choices affect file size, write time, replay time, and managed memory allocation.
 
-Phase 2 adds a compact binary logger and binary replay validation while keeping the NDJSON baseline in place.
+## What it does
 
-Phase 3 adds BenchmarkDotNet benchmarks that compare the current NDJSON and binary formats for write and replay scenarios.
+* Generates deterministic synthetic events from a seed.
+* Writes events to NDJSON.
+* Writes events to a compact binary format.
+* Replays both formats.
+* Validates missing, duplicated, or out-of-order event sequences.
+* Stores a checksum in the binary header to detect changed event contents.
+* Benchmarks both formats with BenchmarkDotNet.
 
-The baseline flow is:
+## Binary format
 
-1. Generate a deterministic set of synthetic trading events.
-2. Write them as NDJSON, which means one JSON object per line.
-3. Read the file back during replay.
-4. Validate sequence numbers so missing, duplicated, or out-of-order events are reported clearly.
-5. Print a small session summary with a deterministic checksum.
+The binary log uses:
 
-NDJSON is useful here because it is easy to inspect with a text editor and easy to replay line by line.
+* a 24-byte header;
+* fixed 37-byte event records.
 
-The binary format is more compact on disk:
+Header fields:
 
-1. A 24-byte header stores the `HPTL` magic bytes, format version, record size, event count, and expected checksum.
-2. Each event record is exactly 37 bytes in this order: sequence, timestamp, type byte, price, quantity, order id.
+```text
+Magic bytes | Version | Record size | Event count | Checksum
+```
 
-The binary format is now benchmarked with BenchmarkDotNet in Release mode, but no final performance claim should go beyond the actual benchmark output you collect on your machine.
+Event record fields:
 
-## Planned phases
-
-1. Correct readable baseline logger. Implemented.
-2. Compact binary logger. Implemented.
-3. Benchmark comparison. Implemented.
-4. Bounded background logging pipeline.
-5. Optional ring-buffer experiment.
-6. Final benchmark report and technical write-up.
-
-## Scope
-
-This is an educational performance-engineering experiment, not a production trading component.
+```text
+Sequence | Timestamp | Type | Price | Quantity | OrderId
+```
 
 ## Commands
 
-Generate a session:
+Generate NDJSON:
 
 ```powershell
 dotnet run --project src/HotPathTrace.Cli -- generate --events 10000 --output artifacts/session.ndjson --seed 42
 ```
 
-Replay a session:
+Replay NDJSON:
 
 ```powershell
 dotnet run --project src/HotPathTrace.Cli -- replay --file artifacts/session.ndjson
 ```
 
-Generate a binary session:
+Generate binary:
 
 ```powershell
 dotnet run --project src/HotPathTrace.Cli -- generate-binary --events 10000 --output artifacts/session.bin --seed 42
 ```
 
-Replay a binary session:
+Replay binary:
 
 ```powershell
 dotnet run --project src/HotPathTrace.Cli -- replay-binary --file artifacts/session.bin
+```
+
+Run tests:
+
+```powershell
+dotnet test
 ```
 
 Run benchmarks:
@@ -74,8 +76,25 @@ Run benchmarks:
 dotnet run --project benchmarks/HotPathTrace.Benchmarks -c Release
 ```
 
-Benchmarks should be run in Release mode. Debug builds can distort timing and memory results.
+## Tech stack
 
-## Benchmark results
+* C#
+* .NET 10
+* xUnit
+* BenchmarkDotNet
 
-Add your measured BenchmarkDotNet summary table here after a Release run on your machine.
+## Scope
+
+This is a learning and measurement project. It does not connect to real exchanges, execute trades, or implement a production logging system.
+
+## Benchmark snapshot
+
+Local BenchmarkDotNet run on Windows 10, Intel Core i7-6500U, .NET 10.0.8.
+
+| Scenario                  |               NDJSON |              Binary | Result                               |
+| ------------------------- | -------------------: | ------------------: | ------------------------------------ |
+| File size, 100,000 events |         11,459,589 B |         3,700,024 B | Binary ~3.1x smaller                 |
+| Write, 100,000 events     | 101.2 ms / 30,478 KB |    28.0 ms / 4.4 KB | Binary faster, much lower allocation |
+| Replay, 100,000 events    | 139.7 ms / 42,765 KB | 89.8 ms / 52,325 KB | Binary faster, but higher allocation |
+
+These results are from one local run and should be treated as implementation-specific, not universal performance claims.
