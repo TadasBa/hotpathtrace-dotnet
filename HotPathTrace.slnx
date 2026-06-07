@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/HotPathTrace.Benchmarks/HotPathTrace.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/HotPathTrace.Cli/HotPathTrace.Cli.csproj" />
     <Project Path="src/HotPathTrace.Core/HotPathTrace.Core.csproj" />

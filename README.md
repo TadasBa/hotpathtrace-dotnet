@@ -4,11 +4,13 @@ A C# .NET performance-learning project exploring low-allocation event logging an
 
 ## Current status
 
-Phases 1 and 2 are implemented.
+Phases 1, 2, and 3 are implemented.
 
 Phase 1 is the readable baseline logger. It is intentionally simple and correct first, not the optimised logger.
 
 Phase 2 adds a compact binary logger and binary replay validation while keeping the NDJSON baseline in place.
+
+Phase 3 adds BenchmarkDotNet benchmarks that compare the current NDJSON and binary formats for write and replay scenarios.
 
 The baseline flow is:
 
@@ -25,13 +27,13 @@ The binary format is more compact on disk:
 1. A 24-byte header stores the `HPTL` magic bytes, format version, record size, event count, and expected checksum.
 2. Each event record is exactly 37 bytes in this order: sequence, timestamp, type byte, price, quantity, order id.
 
-The binary format has not yet been benchmarked. No speed or allocation claim is made at this stage.
+The binary format is now benchmarked with BenchmarkDotNet in Release mode, but no final performance claim should go beyond the actual benchmark output you collect on your machine.
 
 ## Planned phases
 
 1. Correct readable baseline logger. Implemented.
 2. Compact binary logger. Implemented.
-3. Benchmark comparison.
+3. Benchmark comparison. Implemented.
 4. Bounded background logging pipeline.
 5. Optional ring-buffer experiment.
 6. Final benchmark report and technical write-up.
@@ -65,3 +67,15 @@ Replay a binary session:
 ```powershell
 dotnet run --project src/HotPathTrace.Cli -- replay-binary --file artifacts/session.bin
 ```
+
+Run benchmarks:
+
+```powershell
+dotnet run --project benchmarks/HotPathTrace.Benchmarks -c Release
+```
+
+Benchmarks should be run in Release mode. Debug builds can distort timing and memory results.
+
+## Benchmark results
+
+Add your measured BenchmarkDotNet summary table here after a Release run on your machine.
